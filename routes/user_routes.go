@@ -19,10 +19,4 @@ var userRoutes = models.Routers{
 		Path:    "/api/user/{userid}",
 		Handler: api.GetUserById,
 	},
-	models.Router{
-		Name:    "Get user auth",
-		Method:  "POST",
-		Path:    "/api/user/auth",
-		Handler: api.UserAuth,
-	},
 }

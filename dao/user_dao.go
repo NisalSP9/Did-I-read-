@@ -7,54 +7,47 @@ import (
 	"github.com/NisalSP9/Did-I-read/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
 )
 
-func CreateUser(user models.User) (models.User, *commons.RequestError) {
+func CreateUser(user *models.User) *commons.RequestError {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	DB := connections.Connect()
-	rst, err := DB.Collection("user").InsertOne(ctx, user)
+	rst, err := DB.Collection("user").InsertOne(ctx, *user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
 		connections.Disconnect(DB)
-		return models.User{}, &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao CreateUser", Err: err}
+		return &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao CreateUser", Err: err.Error()}
 	}
 	user.Id = rst.InsertedID.(primitive.ObjectID)
 	connections.Disconnect(DB)
-	return user, nil
+	return nil
 }
 
-func GetUserById(userId primitive.ObjectID) (models.User, *commons.RequestError) {
+func GetUserById(userId primitive.ObjectID) (*models.User, *commons.RequestError) {
 	var user models.User
 	DB := connections.Connect()
 	err := DB.Collection("user").FindOne(context.TODO(), bson.D{{"_id", userId}}).Decode(&user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
 		connections.Disconnect(DB)
-		return models.User{}, &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao GetUserById", Err: err}
+		return &models.User{}, &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao GetUserById", Err: err.Error()}
 	}
 	connections.Disconnect(DB)
-	return user, nil
+	return &user, nil
 }
 
-func UserAuth(username, password string) (bool, *commons.RequestError) {
+func UserAuth(username, password string) (string, *commons.RequestError) {
 	var user models.User
 	DB := connections.Connect()
 	err := DB.Collection("user").FindOne(context.TODO(), bson.D{{"email", username}}).Decode(&user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
 		connections.Disconnect(DB)
-		return false, &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao UserAuth", Err: err}
+		return "", &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao UserAuth", Err: err.Error()}
 	}
 	connections.Disconnect(DB)
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
-		commons.WarningLogger.Println(err.Error())
-		return false, nil
-	} else {
-		return true, nil
-	}
+	return commons.GetAuthToken(username, password, user.Password)
 }

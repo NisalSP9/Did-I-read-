@@ -23,17 +23,17 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	createdUser, err1 := controllers.CreateUser(user)
+	err1 := controllers.CreateUser(&user)
 	if err1 != nil {
 		commons.ErrorLogger.Println(err1)
-		w.WriteHeader(http.StatusInternalServerError)
-		if err := json.NewEncoder(w).Encode(err1); err != nil {
+		w.WriteHeader(err1.StatusCode)
+		if err := json.NewEncoder(w).Encode(err1.Err); err != nil {
 			commons.ErrorLogger.Println(err)
 		}
 	} else {
 		// TODO: add a log
 		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(createdUser); err != nil {
+		if err := json.NewEncoder(w).Encode(user); err != nil {
 			commons.ErrorLogger.Println(err)
 		}
 	}
@@ -43,65 +43,53 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	vars := mux.Vars(r)
-	userID := vars["userid"]
-	objectId, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		commons.ErrorLogger.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		if err := json.NewEncoder(w).Encode(err); err != nil {
+	status, _, authErr := commons.IsAuthorized(r.Header.Get("Authorization"))
+
+	if authErr != nil {
+		commons.ErrorLogger.Println(authErr.Err)
+		w.WriteHeader(authErr.StatusCode)
+		if err := json.NewEncoder(w).Encode(authErr.Err); err != nil {
 			commons.ErrorLogger.Println(err)
 		}
+		return
 	}
 
-	foundUser, err1 := controllers.GetUserById(objectId)
-	if err1 != nil {
-		commons.ErrorLogger.Println(err1)
-		w.WriteHeader(http.StatusInternalServerError)
-		if err := json.NewEncoder(w).Encode(err1); err != nil {
+	if status {
+		vars := mux.Vars(r)
+		userID := vars["userid"]
+		objectId, err := primitive.ObjectIDFromHex(userID)
+		if err != nil {
 			commons.ErrorLogger.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err := json.NewEncoder(w).Encode(err.Error()); err != nil {
+				commons.ErrorLogger.Println(err)
+			}
+			return
+		}
+
+		foundUser, err1 := controllers.GetUserById(objectId)
+		if err1 != nil {
+			commons.ErrorLogger.Println(err1)
+			w.WriteHeader(err1.StatusCode)
+			if err := json.NewEncoder(w).Encode(err1.Err); err != nil {
+				commons.ErrorLogger.Println(err)
+			}
+			return
+		} else {
+			// TODO: add a log
+			w.WriteHeader(http.StatusOK)
+			if err := json.NewEncoder(w).Encode(foundUser); err != nil {
+				commons.ErrorLogger.Println(err)
+				return
+			}
 		}
 	} else {
-		// TODO: add a log
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(foundUser); err != nil {
+		commons.ErrorLogger.Println("Unauthorized")
+		w.WriteHeader(http.StatusUnauthorized)
+		if err := json.NewEncoder(w).Encode("Unauthorized"); err != nil {
 			commons.ErrorLogger.Println(err)
-		}
-	}
-}
-
-type LoginRequestWrapper struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-func UserAuth(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
-	decoder := json.NewDecoder(r.Body)
-	var loginRequestWrapper LoginRequestWrapper
-	err := decoder.Decode(&loginRequestWrapper)
-	if err != nil {
-		commons.ErrorLogger.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		if err := json.NewEncoder(w).Encode(err); err != nil {
-			commons.ErrorLogger.Println(err)
+			return
 		}
 	}
 
-	auth, err1 := controllers.UserAuth(loginRequestWrapper.Username, loginRequestWrapper.Password)
-	if err1 != nil {
-		commons.ErrorLogger.Println(err1)
-		w.WriteHeader(http.StatusInternalServerError)
-		if err := json.NewEncoder(w).Encode(false); err != nil {
-			commons.ErrorLogger.Println(err)
-		}
-	} else {
-		// TODO: add a log
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(auth); err != nil {
-			commons.ErrorLogger.Println(err)
-		}
-	}
 }

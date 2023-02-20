@@ -4,7 +4,7 @@ import "fmt"
 
 type RequestError struct {
 	StatusCode      int
-	Err             error
+	Err             string
 	ErrorOccurredIn string
 }
 
