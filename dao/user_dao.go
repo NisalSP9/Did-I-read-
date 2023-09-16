@@ -2,13 +2,14 @@ package dao
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/NisalSP9/Did-I-read/commons"
 	"github.com/NisalSP9/Did-I-read/connections"
 	"github.com/NisalSP9/Did-I-read/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"net/http"
-	"time"
 )
 
 func CreateUser(user *models.User) *commons.RequestError {
@@ -29,7 +30,7 @@ func CreateUser(user *models.User) *commons.RequestError {
 func GetUserById(userId primitive.ObjectID) (*models.User, *commons.RequestError) {
 	var user models.User
 	DB := connections.Connect()
-	err := DB.Collection("user").FindOne(context.TODO(), bson.D{{"_id", userId}}).Decode(&user)
+	err := DB.Collection("user").FindOne(context.TODO(), bson.D{primitive.E{Key: "_id", Value: userId}}).Decode(&user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
 		connections.Disconnect(DB)
@@ -42,7 +43,7 @@ func GetUserById(userId primitive.ObjectID) (*models.User, *commons.RequestError
 func UserAuth(username, password string) (string, *commons.RequestError) {
 	var user models.User
 	DB := connections.Connect()
-	err := DB.Collection("user").FindOne(context.TODO(), bson.D{{"email", username}}).Decode(&user)
+	err := DB.Collection("user").FindOne(context.TODO(), bson.D{primitive.E{Key: "email", Value: username}}).Decode(&user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
 		connections.Disconnect(DB)
