@@ -15,40 +15,31 @@ import (
 func CreateUser(user *models.User) *commons.RequestError {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	DB := connections.Connect()
-	rst, err := DB.Collection("user").InsertOne(ctx, *user)
+	rst, err := connections.DB.Collection("user").InsertOne(ctx, *user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
-		connections.Disconnect(DB)
 		return &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao CreateUser", Err: err.Error()}
 	}
 	user.Id = rst.InsertedID.(primitive.ObjectID)
-	connections.Disconnect(DB)
 	return nil
 }
 
 func GetUserById(userId primitive.ObjectID) (*models.User, *commons.RequestError) {
 	var user models.User
-	DB := connections.Connect()
-	err := DB.Collection("user").FindOne(context.TODO(), bson.D{primitive.E{Key: "_id", Value: userId}}).Decode(&user)
+	err := connections.DB.Collection("user").FindOne(context.TODO(), bson.D{primitive.E{Key: "_id", Value: userId}}).Decode(&user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
-		connections.Disconnect(DB)
 		return &models.User{}, &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao GetUserById", Err: err.Error()}
 	}
-	connections.Disconnect(DB)
 	return &user, nil
 }
 
 func UserAuth(username, password string) (string, *commons.RequestError) {
 	var user models.User
-	DB := connections.Connect()
-	err := DB.Collection("user").FindOne(context.TODO(), bson.D{primitive.E{Key: "email", Value: username}}).Decode(&user)
+	err := connections.DB.Collection("user").FindOne(context.TODO(), bson.D{primitive.E{Key: "email", Value: username}}).Decode(&user)
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
-		connections.Disconnect(DB)
 		return "", &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_dao UserAuth", Err: err.Error()}
 	}
-	connections.Disconnect(DB)
 	return commons.GetAuthToken(username, password, user.Password)
 }

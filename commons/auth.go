@@ -1,14 +1,16 @@
 package commons
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtKey = []byte("secret_key")
+var jwtKey = []byte(os.Getenv("DID_I_READ_KEY"))
 
 type Claims struct {
 	Username string `json:"username"`
