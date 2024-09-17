@@ -2,15 +2,18 @@ package connections
 
 import (
 	"context"
-	"github.com/NisalSP9/Did-I-read/commons"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
 	"time"
+
+	"github.com/NisalSP9/Did-I-read/commons"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func Connect() *mongo.Database {
+var DB *mongo.Database
+
+func Connect() {
 	connectionString := os.Getenv("DID_I_READ_ADMIN_DB_URI")
 	dbName := os.Getenv("DID_I_READ_ADMIN_DB_NAME")
 	clientOptions := options.Client().ApplyURI(connectionString)
@@ -20,26 +23,23 @@ func Connect() *mongo.Database {
 	if err != nil {
 		commons.ErrorLogger.Println("Error while connecting to the DB : " + err.Error())
 	}
-	if client != nil {
-		return client.Database(dbName)
-	} else {
-		commons.ErrorLogger.Println("Client is nil : ")
-		return nil
-	}
+	DB = client.Database(dbName)
+	log.Println("Database connection established")
 }
 
-func CheckConnection(client *mongo.Client) *mongo.Client {
-	err := client.Ping(context.TODO(), nil)
+func CheckConnection() bool {
+	err := DB.Client().Ping(context.TODO(), nil)
 	if err != nil {
 		commons.ErrorLogger.Println("Error while ping to the DB : " + err.Error())
+		panic(err)
 	}
-	log.Println("Connected to MongoDB!")
-	return client
+	return true
 }
 
-func Disconnect(DB *mongo.Database) {
+func Disconnect() {
 	err := DB.Client().Disconnect(context.TODO())
 	if err != nil {
 		commons.ErrorLogger.Println(err.Error())
+		panic(err)
 	}
 }

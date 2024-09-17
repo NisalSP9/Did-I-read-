@@ -9,19 +9,15 @@ import (
 	"net/http"
 )
 
-func CreateUser(user models.User) (models.User, *commons.RequestError) {
+func CreateUser(user *models.User) *commons.RequestError {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return user, &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_controller CreateUser", Err: err}
+		return &commons.RequestError{StatusCode: http.StatusBadRequest, ErrorOccurredIn: "user_controller CreateUser", Err: err.Error()}
 	}
 	user.Password = string(hashedPassword)
 	return dao.CreateUser(user)
 }
 
-func GetUserById(userId primitive.ObjectID) (models.User, *commons.RequestError) {
+func GetUserById(userId primitive.ObjectID) (*models.User, *commons.RequestError) {
 	return dao.GetUserById(userId)
-}
-
-func UserAuth(username, password string) (bool, *commons.RequestError) {
-	return dao.UserAuth(username, password)
 }

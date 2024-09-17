@@ -10,6 +10,7 @@ func init() {
 	routes := []models.Routers{
 		healthCheckRoutes,
 		userRoutes,
+		authRoutes,
 	}
 
 	for _, r := range routes {
